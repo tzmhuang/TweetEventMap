@@ -2,7 +2,7 @@
 
 <img src="./img/twitter_logo.png" alt="drawing" width="250"/>
 
-The goal of this project is to create a easy and intuitive tool of letting people know what is going one in their city based on tweets around them. 
+The goal of this project is to create a easy and intuitive tool of letting people know what is going on in their city based on tweets. 
 
 ## Requirements
     - python >= 3.6
