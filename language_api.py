@@ -10,7 +10,7 @@ class LanguageAPI():
             content=text, type_=language_v1.Document.Type.PLAIN_TEXT)
         response = self.client.analyze_sentiment(
             request={'document': doc})
-        print(response)
+        # print(response)
         return response.document_sentiment.score
 
     def get_entities_from_text(self, text):

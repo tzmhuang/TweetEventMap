@@ -10,7 +10,7 @@ class Tweet():
         return self._text
 
     def get_geocode(self):
-        return self._geocode
+        return self._geocode.get_geocode()
 
     def get_sentiment(self):
         return self._sentiment
@@ -20,13 +20,18 @@ class Tweet():
 
     def __str__(self):
         return ('Tweet(text=' + self._text
-                + ', geocode=', + self._geocode.__str__()
+                + ', geocode=' + self._geocode.__str__()
                 + ', sentiment: ' + self._sentiment.__str__()
                 + ', entities: ' + self._entities.__str__())
 
 
 class Geocode():
-    def __init__(self, longitude, latitude):
+    def __init__(self, latitude, longitude):
         self.longitude = longitude
         self.latitude = latitude
+    
+    def get_geocode(self):
+        return [self.latitude, self.longitude]
 
+    def __str__(self):
+        return 'Geocode(latitude=%s, longitude=%s)' % (self.latitude, self.longitude)

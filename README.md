@@ -30,3 +30,8 @@ Performing NLP tasks such as sentiment analysis and entity extraction.
 <img src="./img/language_api_test.png" alt="language_api_test"/>
 
 
+## Heatmap
+
+Generating an interactive heatmap that shows the sentiment of different locations in the region. Below is an example of sentiments form a list of locations sampled uniformly in the Boston area.
+
+<img src="./img/heatmap_test.png" alt="heatmap_test"/>
