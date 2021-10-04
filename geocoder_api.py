@@ -2,7 +2,7 @@ from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
 
-class GeocoderApi():
+class GeocoderAPI():
     def __init__(self, user_agent, rate_limit=1):
         self.rate_limit = rate_limit
         self.user_agent = user_agent
@@ -17,7 +17,8 @@ class GeocoderApi():
 
 if __name__ == "__main__":
     query = "Fenway Park, Boston"
-    api = GeocoderApi("test_agend")
+    # query = "Times Square, New York"
+    api = GeocoderAPI("test_agent")
     geocode = api.get_geocode_by_name(query)
     print("="*20)
     print("Getting geocode for {}".format(query))
