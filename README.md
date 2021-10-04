@@ -7,6 +7,8 @@ The goal of this project is to create a easy and intuitive tool of letting peopl
 ## Requirements
     - python >= 3.6
     - tweepy >= v4.0.0
+    - geopy >= 2.2.0
+    - google-cloud-language >= 2.2.2
 
 ## Modules
 
