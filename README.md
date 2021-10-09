@@ -9,6 +9,8 @@ The goal of this project is to create a easy and intuitive tool of letting peopl
     - tweepy >= v4.0.0
     - geopy >= 2.2.0
     - google-cloud-language >= 2.2.2
+    - plotly >= 5.3.1
+    - PyQt5 >= 5.15.4
 
 ## Modules
 

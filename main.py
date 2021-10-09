@@ -1,12 +1,8 @@
 import io
 import sys
 import numpy as np
-import pandas as pd
 import itertools
-import folium
 import re
-from folium.plugins import HeatMap
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from PyQt5 import QtWidgets, QtWebEngineWidgets
 
@@ -28,24 +24,23 @@ class App():
 
     def process_tweets_by_geocode(self, geocode, radius):
         # get tweets from geocode
-        # join tweets as one long tweet to minimize api call
-        # get sentiment from tweet
-        # get entities from tweet
         tweets = self._twitter_api.get_tweet_by_geocode(geocode, radius)
+        # join and clean tweets as one long tweet to minimize api call
         cleaned_tweets = map(
             self.preprocess, [tweet.full_text for tweet in tweets])
         concatenated_tweets = ". ".join(cleaned_tweets)
-        try:
+        try:    # get sentiment from tweet
             sentiment, magnitude = self._language_api.get_sentiment_from_text(
                 concatenated_tweets)
         except:
-            sentiment,magnitude = (0,0)
-        try:
+            sentiment, magnitude = (0, 0)
+        try:    # get entities from tweet
             entities, _json_entities = self._language_api.get_entities_from_text(
                 concatenated_tweets)
         except:
             entities = None
-        sentiment = ((sentiment+1)/2)**2*100  # Non-linear transform of [-1, +1] to [0, 100]
+        # Linear transform of [-1, +1] to [0, 100]
+        sentiment = sentiment * 50 + 50
         return util.Tweet(concatenated_tweets, geocode, sentiment, magnitude, entities)
 
     def geocode_sample_uniform(self, area_name, radius, resolution):
@@ -80,18 +75,27 @@ class App():
         return re.sub(r'http\S+', '', text)
 
     def draw_map_plotly(self, center_geocode, tweets):
-        lats = [tweet.get_geocode()[0] for tweet in tweets]
-        lon = [tweet.get_geocode()[1] for tweet in tweets]
-        sentiment = [tweet.get_sentiment() for tweet in tweets]
-        magnitude = np.array([tweet.get_magnitude() for tweet in tweets])
-        magnitude = magnitude/np.max(magnitude)*100  # Normalize to [0, 100]
+        try:
+            tweets = list(tweets)
+        except TypeError:
+            return
+        lats = np.zeros(len(tweets))
+        lon = np.zeros(len(tweets))
+        sentiment = np.zeros(len(tweets))
+        magnitude = np.zeros(len(tweets))
         entities = []
-        for tweet in tweets:
+        for idx, tweet in enumerate(tweets):
+            lats[idx] = tweet.get_geocode()[0]
+            lon[idx] = tweet.get_geocode()[1]
+            sentiment[idx] = tweet.get_sentiment()
+            magnitude[idx] = tweet.get_magnitude()
             try:
                 names = list(map(lambda x: x.name, tweet.get_entities()))
                 entities += [", ".join(names[0:min(MAX_ENTITIES, len(names))])]
             except:
+                entities += [" "]
                 print("Error extracting entities")
+        magnitude = magnitude/np.max(magnitude)*100  # Normalize to [0, 100]
         hover_text = "<b>Location: (%{lat}, %{lon}) </b><br>" +\
                      "Sentiment: %{z} <br>" + \
                      "Magnitude: %{radius}<br>" + \
@@ -117,12 +121,15 @@ class App():
         else:
             print("Unknown method")
         print("Done sampling. Processing ... ")
-        list_of_tweets = [app.process_tweets_by_geocode(
-            coord, 1) for coord in grids]
+        tweet_radius = 1/kwargs['resolution']/2
+        list_of_tweets = map(app.process_tweets_by_geocode,
+                             grids, [tweet_radius]*len(grids))
         if 'save' in kwargs.keys() and kwargs['save']:
             np.save("tweets_UCB_with_mag.npy", list_of_tweets)
         print("Done. Drawing map ...")
         hm = self.draw_map_plotly(center, list_of_tweets)
+        if hm is None:
+            return
         print("Done!")
         self.qt = QtWidgets.QApplication(sys.argv)
         w = QtWebEngineWidgets.QWebEngineView()

@@ -24,7 +24,11 @@ class TweeterAPI():
     def get_tweet_by_geocode(self, geocode, radius, query=None):
         geocode_query = "%s,%s,%skm" % (
             geocode.latitude, geocode.longitude, radius)
-        return self.api.search_tweets(q=query, geocode=geocode_query, tweet_mode="extended")
+        try:
+            return self.api.search_tweets(q=query, geocode=geocode_query, tweet_mode="extended")
+        except tweepy.errors.TooManyRequests:
+            print("Error: Twitter API request limit reached.")
+        return None
 
 
 if __name__ == "__main__":
