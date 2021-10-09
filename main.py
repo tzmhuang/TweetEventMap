@@ -1,3 +1,5 @@
+import io
+import sys
 import numpy as np
 import pandas as pd
 import itertools
@@ -5,11 +7,16 @@ import folium
 import re
 from folium.plugins import HeatMap
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from PyQt5 import QtWidgets, QtWebEngineWidgets
 
 from twitter_api import *
 from language_api import *
 from geocoder_api import *
 import util
+
+WINDOW_SIZE = (1280, 960)
+MAX_ENTITIES = 5
 
 
 class App():
@@ -24,13 +31,15 @@ class App():
         # get sentiment from tweet
         # get entities from tweet
         tweets = self._twitter_api.get_tweet_by_geocode(geocode, radius)
-        cleaned_tweets = map(self.preprocess, [tweet.full_text for tweet in tweets])
+        cleaned_tweets = map(
+            self.preprocess, [tweet.full_text for tweet in tweets])
         concatenated_tweets = ". ".join(cleaned_tweets)
-        sentiments = self._language_api.get_sentiment_from_text(
+        sentiment, magnitude = self._language_api.get_sentiment_from_text(
             concatenated_tweets)
-        entities = self._language_api.get_entities_from_text(
+        entities, _json_entities = self._language_api.get_entities_from_text(
             concatenated_tweets)
-        return util.Tweet(concatenated_tweets, geocode, sentiments, entities)
+        sentiment = (sentiment*50) + 50  # Normalize from [-1, +1] to [0, 100]
+        return util.Tweet(concatenated_tweets, geocode, sentiment, magnitude, entities)
 
     def geocode_sample_uniform(self, area_name, radius, resolution):
         # radius in km
@@ -48,7 +57,7 @@ class App():
         geocodes = map(util.Geocode, np.repeat(
             latitudes, n_pts), np.tile(longitudes, n_pts))
         return list(geocodes)
-    
+
     def geocode_sample_gaussian(self, area_name, variance, n_pts):
         # do sthing
         return
@@ -63,12 +72,53 @@ class App():
     def preprocess(self, text):
         return re.sub(r'http\S+', '', text)
 
-    def draw_map(self, center_geocode, tweets):
-        m = folium.Map(location=center_geocode.get_geocode(), zoom_start=12)
-        sentiment_data = [tweet.get_geocode()+ [tweet.get_sentiment()] for tweet in tweets]
-        HeatMap(sentiment_data).add_to(folium.FeatureGroup(name='Heat Map').add_to(m))
-        folium.LayerControl().add_to(m)
-        return m
+    def draw_map_plotly(self, center_geocode, tweets):
+        lats = [tweet.get_geocode()[0] for tweet in tweets]
+        lon = [tweet.get_geocode()[1] for tweet in tweets]
+        sentiment = [tweet.get_sentiment() for tweet in tweets]
+        magnitude = np.array([tweet.get_magnitude() for tweet in tweets])
+        magnitude = magnitude/np.max(magnitude)*100  # Normalize to [0, 100]
+        entities = []
+        for tweet in tweets:
+            names = list(map(lambda x: x.name, tweet.get_entities()))
+            entities += [", ".join(names[0:min(MAX_ENTITIES, len(names))])]
+
+        hover_text = "<b>Location: (%{lat}, %{lon}) </b><br>" +\
+                     "Sentiment: %{z} <br>" + \
+                     "Magnitude: %{radius}<br>" + \
+                     "Words: %{customdata}<br>"
+        fig = go.Figure(go.Densitymapbox(
+            lat=lats, lon=lon, z=sentiment, radius=magnitude, customdata=entities, hovertemplate=hover_text))
+
+        fig.update_layout(mapbox_style="open-street-map",
+                          mapbox_center_lon=center_geocode.longitude, mapbox_center_lat=center_geocode.latitude,
+                          mapbox_zoom=10)
+        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        return fig
+
+    def spin(self, location, method='uniform', **kwargs):
+        center = self.get_location_geocodes([location])[0]
+        if method == 'uniform':
+            grids = self.geocode_sample_uniform(
+                location, kwargs['radius'], kwargs['resolution'])
+        elif method == 'gaussian':
+            grids = self.geocode_sample_gaussian(
+                location, kwargs['variance'], kwargs['n_pts'])
+        else:
+            print("Unknown method")
+        list_of_tweets = [app.process_tweets_by_geocode(
+            coord, 1) for coord in grids]
+        if 'save' in kwargs.keys() and kwargs['save']:
+            np.save("tweets_06102021_with_mag.npy", list_of_tweets)
+        hm = self.draw_map_plotly(center, list_of_tweets)
+        self.qt = QtWidgets.QApplication(sys.argv)
+        w = QtWebEngineWidgets.QWebEngineView()
+        w.setHtml(hm.to_html(include_plotlyjs='cdn'))
+        w.resize(*WINDOW_SIZE)
+        w.show()
+
+        sys.exit(self.qt.exec_())
+        return
 
 
 def get_lat_length(lat):
@@ -83,40 +133,4 @@ def get_lon_length(lon, lat):
 
 if __name__ == "__main__":
     app = App()
-    print('='*20)
-    print('Checking lat lon calculation')
-    print('-'*20)
-    fenway = app.get_location_geocodes(['Fenway Park, Boston'])
-    print(fenway[0])
-
-    up = get_lat_length(fenway[0].latitude)
-    up_lat = 1/up * 200
-    up_geocode = Geocode(fenway[0].latitude + up_lat, fenway[0].longitude)
-    print(up_geocode)
-    print('-'*20)
-
-    left = get_lon_length(fenway[0].longitude, fenway[0].latitude)
-    left_lon = 1/left * 200
-    left_geocode = Geocode(fenway[0].latitude, fenway[0].longitude - left_lon)
-    print(left_geocode)
-
-    print('='*20)
-    print('Checking geocode_sample_uniform')
-    grids = app.geocode_sample_uniform('Fenway Park, Boston',5, 0.5)
-    m = folium.Map(location=fenway[0].get_geocode(), zoom_start=12)
-    for pt in grids:
-        folium.Marker(pt.get_geocode()).add_to(m)
-    m.save("index.html")
-
-    print('='*20)
-    print('Checking process_tweets_by_geocode')
-    # res = app.process_tweets_by_geocode(fenway[0], 1)
-    # print(res)
-
-    print('='*20)
-    print('Checking draw_map')
-    list_of_tweets = [app.process_tweets_by_geocode(coord, 1) for coord in grids]
-    hm = app.draw_map(fenway[0], list_of_tweets)
-    hm.save("heatmap.html")
-
-
+    app.spin('Fenway, Boston', method='uniform', radius=2, resolution=1)

@@ -1,9 +1,10 @@
 
 class Tweet():
-    def __init__(self, text, geocode, sentiment, entities):
+    def __init__(self, text, geocode, sentiment, magnitude, entities):
         self._text = text
         self._geocode = geocode
         self._sentiment = sentiment
+        self._magnitude = magnitude
         self._entities = entities
 
     def get_text(self):
@@ -14,6 +15,9 @@ class Tweet():
 
     def get_sentiment(self):
         return self._sentiment
+    
+    def get_magnitude(self):
+        return self._magnitude
 
     def get_entities(self):
         return self._entities
