@@ -32,6 +32,11 @@ Performing NLP tasks such as sentiment analysis and entity extraction.
 
 ## Heatmap
 
-Generating an interactive heatmap that shows the sentiment of different locations in the region. Below is an example of sentiments form a list of locations sampled uniformly in the Boston area.
+Generating an interactive heatmap that shows the sentiment of different locations in a region. Below is an example of sentiments of a list of locations sampled uniformly in the NYC. The color indicates the sentiment, while the size indicates the magnitude of sentiments (squared sum of all sentiments).  
 
-<img src="./img/heatmap_test.png" alt="heatmap_test"/>
+<img src="./img/heatmap_plotly.png" alt="heatmap_test"/>
+
+Hovering the mouse over a region will show detailed information about the area, including the coordinate, sentiment and magnitude value, as well as keywords describing the area. As shown in the image below, from the keyword, we can tell that people are excited about Comic Con in NYC.
+
+<img src="./img/hoverinfo_plotly.png" alt="heatmap_test"/>
+

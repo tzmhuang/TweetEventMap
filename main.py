@@ -17,6 +17,7 @@ import util
 
 WINDOW_SIZE = (1280, 960)
 MAX_ENTITIES = 5
+EPS = 0.1
 
 
 class App():
@@ -34,11 +35,17 @@ class App():
         cleaned_tweets = map(
             self.preprocess, [tweet.full_text for tweet in tweets])
         concatenated_tweets = ". ".join(cleaned_tweets)
-        sentiment, magnitude = self._language_api.get_sentiment_from_text(
-            concatenated_tweets)
-        entities, _json_entities = self._language_api.get_entities_from_text(
-            concatenated_tweets)
-        sentiment = (sentiment*50) + 50  # Normalize from [-1, +1] to [0, 100]
+        try:
+            sentiment, magnitude = self._language_api.get_sentiment_from_text(
+                concatenated_tweets)
+        except:
+            sentiment,magnitude = (0,0)
+        try:
+            entities, _json_entities = self._language_api.get_entities_from_text(
+                concatenated_tweets)
+        except:
+            entities = None
+        sentiment = ((sentiment+1)/2)**2*100  # Non-linear transform of [-1, +1] to [0, 100]
         return util.Tweet(concatenated_tweets, geocode, sentiment, magnitude, entities)
 
     def geocode_sample_uniform(self, area_name, radius, resolution):
@@ -80,15 +87,17 @@ class App():
         magnitude = magnitude/np.max(magnitude)*100  # Normalize to [0, 100]
         entities = []
         for tweet in tweets:
-            names = list(map(lambda x: x.name, tweet.get_entities()))
-            entities += [", ".join(names[0:min(MAX_ENTITIES, len(names))])]
-
+            try:
+                names = list(map(lambda x: x.name, tweet.get_entities()))
+                entities += [", ".join(names[0:min(MAX_ENTITIES, len(names))])]
+            except:
+                print("Error extracting entities")
         hover_text = "<b>Location: (%{lat}, %{lon}) </b><br>" +\
                      "Sentiment: %{z} <br>" + \
                      "Magnitude: %{radius}<br>" + \
                      "Words: %{customdata}<br>"
         fig = go.Figure(go.Densitymapbox(
-            lat=lats, lon=lon, z=sentiment, radius=magnitude, customdata=entities, hovertemplate=hover_text))
+            lat=lats, lon=lon, z=sentiment, radius=magnitude + EPS*10, customdata=entities, hovertemplate=hover_text))
 
         fig.update_layout(mapbox_style="open-street-map",
                           mapbox_center_lon=center_geocode.longitude, mapbox_center_lat=center_geocode.latitude,
@@ -98,6 +107,7 @@ class App():
 
     def spin(self, location, method='uniform', **kwargs):
         center = self.get_location_geocodes([location])[0]
+        print("Sampling")
         if method == 'uniform':
             grids = self.geocode_sample_uniform(
                 location, kwargs['radius'], kwargs['resolution'])
@@ -106,17 +116,19 @@ class App():
                 location, kwargs['variance'], kwargs['n_pts'])
         else:
             print("Unknown method")
+        print("Done sampling. Processing ... ")
         list_of_tweets = [app.process_tweets_by_geocode(
             coord, 1) for coord in grids]
         if 'save' in kwargs.keys() and kwargs['save']:
-            np.save("tweets_06102021_with_mag.npy", list_of_tweets)
+            np.save("tweets_UCB_with_mag.npy", list_of_tweets)
+        print("Done. Drawing map ...")
         hm = self.draw_map_plotly(center, list_of_tweets)
+        print("Done!")
         self.qt = QtWidgets.QApplication(sys.argv)
         w = QtWebEngineWidgets.QWebEngineView()
         w.setHtml(hm.to_html(include_plotlyjs='cdn'))
         w.resize(*WINDOW_SIZE)
         w.show()
-
         sys.exit(self.qt.exec_())
         return
 
@@ -133,4 +145,5 @@ def get_lon_length(lon, lat):
 
 if __name__ == "__main__":
     app = App()
-    app.spin('Fenway, Boston', method='uniform', radius=2, resolution=1)
+    app.spin('Times Square, New York City',
+             method='uniform', radius=2, resolution=2)
