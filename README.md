@@ -4,6 +4,12 @@
 
 The goal of this project is to create a easy and intuitive tool of letting people know what is going on in their city based on tweets. 
 
+Run by:
+
+```
+python main.py
+```
+
 ## Requirements
     - python >= 3.6
     - tweepy >= v4.0.0
@@ -38,7 +44,7 @@ Generating an interactive heatmap that shows the sentiment of different location
 
 <img src="./img/heatmap_plotly.png" alt="heatmap_test"/>
 
-Hovering the mouse over a region will show detailed information about the area, including the coordinate, sentiment and magnitude value, as well as keywords describing the area. As shown in the image below, from the keyword, we can tell that people are excited about Comic Con in NYC.
+Hovering the mouse over a region will show detailed information about the area, including the coordinate, sentiment and magnitude value, as well as keywords describing the area. As shown in the image below, we can tell that people are excited about Comic Con @ NYC from the extracted keywords.
 
 <img src="./img/hoverinfo_plotly.png" alt="heatmap_test"/>
 
