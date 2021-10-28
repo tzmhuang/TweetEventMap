@@ -14,16 +14,3 @@ class GeocoderAPI():
         res = self.geocode(query)
         return res
 
-
-if __name__ == "__main__":
-    query = "Fenway Park, Boston"
-    # query = "Times Square, New York"
-    api = GeocoderAPI("test_agent")
-    geocode = api.get_geocode_by_name(query)
-    print("="*20)
-    print("Getting geocode for {}".format(query))
-    print("Address: ", geocode.address)
-    print("Lon: ", geocode.longitude)
-    print("Lat: ", geocode.latitude)
-
-    

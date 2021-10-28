@@ -30,19 +30,3 @@ class TweeterAPI():
             print("Error: Twitter API request limit reached.")
         return None
 
-
-if __name__ == "__main__":
-    api = TweeterAPI()
-
-    print("="*20)
-    print("Getting Timeline")
-    public_tweets = api.get_home_timeline()
-    for idx, tweet in enumerate(public_tweets[0:N_TWEET]):
-        print(idx, ': ', tweet.text)
-
-    print("="*20)
-    print("Searching by Geocode")
-    fenway_park = Geocode(42.346268, -71.095764)  # geocode for Fenway Park
-    geocode_result = api.get_tweet_by_geocode(fenway_park, 1)
-    for idx, tweet in enumerate(geocode_result[0:N_TWEET]):
-        print(idx, ': ', tweet.full_text)
